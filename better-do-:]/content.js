@@ -20,7 +20,9 @@ function replaceText(node) {
   if (node.nodeType === Node.TEXT_NODE) {
     node.textContent = node.textContent
       .replaceAll(":)", ":]")
-      .replaceAll(":3", ":]");
+      .replaceAll(":3", ":]")
+      .replaceAll(":(", ":[")
+      .replaceAll("3:", ":[");
   } else {
     node.childNodes.forEach(replaceText);
   }
