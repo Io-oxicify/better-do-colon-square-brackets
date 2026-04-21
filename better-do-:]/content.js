@@ -13,16 +13,39 @@ chrome.storage.onChanged.addListener((changes) => {
     if (enabled) start();
   }
 });
+function isSkippable(node) {
+  if (!node || !node.parentElement) return false;
 
+  const badTags = [
+    "SCRIPT",
+    "STYLE",
+    "TEXTAREA",
+    "CODE",
+    "PRE",
+    "NOSCRIPT"
+  ];
+
+  return badTags.includes(node.parentElement.tagName);
+}
 function replaceText(node) {
   if (!enabled) return;
 
+  // skip unsafe areas
   if (node.nodeType === Node.TEXT_NODE) {
-    node.textContent = node.textContent
+    if (isSkippable(node)) return;
+
+    const original = node.textContent;
+
+    const replaced = original
       .replaceAll(":)", ":]")
       .replaceAll(":3", ":]")
       .replaceAll(":(", ":[")
-      .replaceAll("3:", ":[");
+      .replaceAll("3:", ":["); // optional risky line
+
+    if (replaced !== original) {
+      node.textContent = replaced;
+    }
+
   } else {
     node.childNodes.forEach(replaceText);
   }
@@ -30,7 +53,9 @@ function replaceText(node) {
 
 // initial run
 function start() {
-  replaceText(document.body);
+  if (document.body) {
+    replaceText(document.body);
+  }
 }
 
 // LIVE updates (this is the magic)
