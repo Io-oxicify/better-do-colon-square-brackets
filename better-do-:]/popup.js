@@ -25,7 +25,12 @@ toggle.addEventListener("change", async () => {
         // If the user clicked 'Cancel' on the webpage prompt
         if (!result.result) {
           toggle.checked = true; // Re-check the popup toggle
-          return; // Exit without saving
+          return; // Exit without saving or reloading
+        } else {
+          // If they clicked 'OK', save the state AND reload the webpage instantly
+          await chrome.storage.sync.set({ enabled: false });
+          chrome.tabs.reload(tab.id);
+          return;
         }
       } catch (err) {
         // Fallback: If scripting fails (e.g., on internal chrome:// pages), use popup confirm
@@ -33,11 +38,15 @@ toggle.addEventListener("change", async () => {
         if (!confirm("Would you like to disable this effect? (Requires page reload)")) {
           toggle.checked = true;
           return;
+        } else {
+          await chrome.storage.sync.set({ enabled: false });
+          if (tab && tab.id) chrome.tabs.reload(tab.id);
+          return;
         }
       }
     }
   }
 
-  // Save state if they confirmed, or if they are turning it back ON
+  // Save state if they are turning it back ON
   chrome.storage.sync.set({ enabled: toggle.checked });
 });
