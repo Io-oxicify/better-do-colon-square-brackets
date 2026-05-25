@@ -6,16 +6,38 @@ chrome.storage.sync.get(["enabled"], (data) => {
 });
 
 // update state
-toggle.addEventListener("change", () => {
+toggle.addEventListener("change", async () => {
+  // If the user is unchecking the box, run the prompt on the webpage
   if (!toggle.checked) {
-    const confirmDisable = confirm("Would you like to disable this effect? (Requires page reload)");
+    // Get the currently active browser tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    if (!confirmDisable) {
-      toggle.checked = true; 
-      return;
+    if (tab && tab.id) {
+      try {
+        // Execute the confirm dialog directly inside the web page's window
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            return confirm("Would you like to disable this effect? (Requires page reload)");
+          }
+        });
+
+        // If the user clicked 'Cancel' on the webpage prompt
+        if (!result.result) {
+          toggle.checked = true; // Re-check the popup toggle
+          return; // Exit without saving
+        }
+      } catch (err) {
+        // Fallback: If scripting fails (e.g., on internal chrome:// pages), use popup confirm
+        console.warn("Could not inject script, falling back to popup dialog:", err);
+        if (!confirm("Would you like to disable this effect? (Requires page reload)")) {
+          toggle.checked = true;
+          return;
+        }
+      }
     }
   }
 
-  // i think this is save?
+  // Save state if they confirmed, or if they are turning it back ON
   chrome.storage.sync.set({ enabled: toggle.checked });
 });
